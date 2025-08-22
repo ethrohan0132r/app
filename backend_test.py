@@ -34,6 +34,8 @@ class YouTubeShortsAPITester:
                     response = requests.post(url, files=files, data=data)
                 else:
                     response = requests.post(url, json=data, headers=headers)
+            elif method == 'PUT':
+                response = requests.put(url, json=data, headers=headers)
 
             success = response.status_code == expected_status
             if success:
