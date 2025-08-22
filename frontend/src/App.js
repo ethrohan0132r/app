@@ -75,6 +75,7 @@ function App() {
     fetchVideos();
     fetchMetadata();
     fetchQueue();
+    fetchApiConfig();
   }, []);
 
   // Video Upload Component
