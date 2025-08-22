@@ -165,6 +165,10 @@ async def upload_video(file: UploadFile = File(...)):
     if file_size > 2 * 1024 * 1024 * 1024:  # 2GB
         raise HTTPException(status_code=400, detail="File size exceeds 2GB limit")
     
+    # Get next sequence number
+    video_count = await db.videos.count_documents({})
+    sequence_number = video_count + 1
+    
     # Save file
     file_id = str(uuid.uuid4())
     file_path = UPLOAD_DIR / f"{file_id}_{file.filename}"
@@ -176,11 +180,12 @@ async def upload_video(file: UploadFile = File(...)):
     video_data = VideoUpload(
         filename=file.filename,
         file_path=str(file_path),
-        file_size=file_size
+        file_size=file_size,
+        sequence_number=sequence_number
     )
     
     await db.videos.insert_one(video_data.dict())
-    return {"message": "Video uploaded successfully", "video_id": video_data.id}
+    return {"message": "Video uploaded successfully", "video_id": video_data.id, "sequence_number": sequence_number}
 
 # Get all videos
 @api_router.get("/videos", response_model=List[VideoUpload])
