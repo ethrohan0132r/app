@@ -63,6 +63,7 @@ class VideoMetadata(BaseModel):
     hashtags: List[str]
     created_date: datetime = Field(default_factory=datetime.utcnow)
     is_used: bool = False
+    sequence_number: Optional[int] = None
 
 class VideoMetadataCreate(BaseModel):
     title: str
