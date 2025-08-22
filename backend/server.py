@@ -84,6 +84,28 @@ class UploadQueueCreate(BaseModel):
     metadata_id: str
     schedule_interval: ScheduleInterval
 
+class SequentialScheduleCreate(BaseModel):
+    schedule_interval: ScheduleInterval
+    start_sequence: int = 1
+    count: Optional[int] = None  # If None, schedule all available
+
+class APIConfiguration(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    youtube_api_key: str
+    youtube_client_id: Optional[str] = None
+    youtube_client_secret: Optional[str] = None
+    channel_id: Optional[str] = None
+    default_privacy: str = "private"  # private, public, unlisted
+    created_date: datetime = Field(default_factory=datetime.utcnow)
+    is_active: bool = True
+
+class APIConfigurationCreate(BaseModel):
+    youtube_api_key: str
+    youtube_client_id: Optional[str] = None
+    youtube_client_secret: Optional[str] = None
+    channel_id: Optional[str] = None
+    default_privacy: str = "private"
+
 class DashboardStats(BaseModel):
     total_videos: int
     completed: int
