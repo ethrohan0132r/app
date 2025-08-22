@@ -59,6 +59,17 @@ function App() {
     }
   };
 
+  // Fetch API configuration
+  const fetchApiConfig = async () => {
+    try {
+      const response = await axios.get(`${API}/config/api`);
+      setApiConfig(response.data);
+    } catch (error) {
+      console.error('Error fetching API config:', error);
+      setApiConfig(null);
+    }
+  };
+
   useEffect(() => {
     fetchStats();
     fetchVideos();
