@@ -196,13 +196,25 @@ async def get_videos():
 # Metadata Management
 @api_router.post("/metadata", response_model=VideoMetadata)
 async def create_metadata(metadata: VideoMetadataCreate):
-    metadata_obj = VideoMetadata(**metadata.dict())
+    # Get next sequence number
+    metadata_count = await db.metadata.count_documents({})
+    sequence_number = metadata_count + 1
+    
+    metadata_obj = VideoMetadata(**metadata.dict(), sequence_number=sequence_number)
     await db.metadata.insert_one(metadata_obj.dict())
     return metadata_obj
 
 @api_router.post("/metadata/bulk")
 async def bulk_create_metadata(metadata_list: List[VideoMetadataCreate]):
-    metadata_objects = [VideoMetadata(**metadata.dict()) for metadata in metadata_list]
+    # Get starting sequence number
+    metadata_count = await db.metadata.count_documents({})
+    
+    metadata_objects = []
+    for i, metadata in enumerate(metadata_list):
+        sequence_number = metadata_count + i + 1
+        metadata_obj = VideoMetadata(**metadata.dict(), sequence_number=sequence_number)
+        metadata_objects.append(metadata_obj)
+    
     metadata_dicts = [metadata.dict() for metadata in metadata_objects]
     await db.metadata.insert_many(metadata_dicts)
     return {"message": f"Created {len(metadata_objects)} metadata entries"}
