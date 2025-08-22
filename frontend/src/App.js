@@ -6,7 +6,7 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
 function App() {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('upload');
   const [stats, setStats] = useState({
     total_videos: 0,
     completed: 0,
@@ -16,6 +16,7 @@ function App() {
   const [videos, setVideos] = useState([]);
   const [metadata, setMetadata] = useState([]);
   const [uploadQueue, setUploadQueue] = useState([]);
+  const [apiConfig, setApiConfig] = useState(null);
   const [loading, setLoading] = useState(false);
 
   // Fetch dashboard stats
