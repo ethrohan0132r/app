@@ -70,6 +70,199 @@ function App() {
     }
   };
 
+  // Configuration Component
+  const ConfigurationComponent = () => {
+    const [configForm, setConfigForm] = useState({
+      youtube_api_key: '',
+      youtube_client_id: '',
+      youtube_client_secret: '',
+      channel_id: '',
+      default_privacy: 'private'
+    });
+
+    useEffect(() => {
+      if (apiConfig) {
+        setConfigForm({
+          youtube_api_key: apiConfig.youtube_api_key || '',
+          youtube_client_id: apiConfig.youtube_client_id || '',
+          youtube_client_secret: apiConfig.youtube_client_secret || '',
+          channel_id: apiConfig.channel_id || '',
+          default_privacy: apiConfig.default_privacy || 'private'
+        });
+      }
+    }, [apiConfig]);
+
+    const handleConfigSubmit = async (e) => {
+      e.preventDefault();
+      setLoading(true);
+
+      try {
+        if (apiConfig) {
+          // Update existing config
+          await axios.put(`${API}/config/api/${apiConfig.id}`, configForm);
+          alert('API configuration updated successfully!');
+        } else {
+          // Create new config
+          await axios.post(`${API}/config/api`, configForm);
+          alert('API configuration created successfully!');
+        }
+        
+        fetchApiConfig();
+      } catch (error) {
+        console.error('Error saving API config:', error);
+        alert('Failed to save API configuration: ' + (error.response?.data?.detail || error.message));
+      }
+      
+      setLoading(false);
+    };
+
+    const handleTestConnection = async () => {
+      if (!configForm.youtube_api_key) {
+        alert('Please enter YouTube API Key first');
+        return;
+      }
+      
+      setLoading(true);
+      // Here you would implement actual YouTube API test
+      setTimeout(() => {
+        setLoading(false);
+        alert('YouTube API connection test: Coming soon! (Will be implemented when YouTube integration is added)');
+      }, 1000);
+    };
+
+    return (
+      <div className="space-y-6">
+        {/* API Configuration Status */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold">API Configuration Status</h3>
+            <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+              apiConfig 
+                ? 'bg-green-100 text-green-800' 
+                : 'bg-red-100 text-red-800'
+            }`}>
+              {apiConfig ? '✅ Configured' : '❌ Not Configured'}
+            </div>
+          </div>
+          
+          {apiConfig && (
+            <div className="text-sm text-gray-600">
+              <p><strong>Last Updated:</strong> {new Date(apiConfig.created_date).toLocaleString()}</p>
+              <p><strong>Default Privacy:</strong> {apiConfig.default_privacy}</p>
+              <p><strong>Channel ID:</strong> {apiConfig.channel_id || 'Not set'}</p>
+            </div>
+          )}
+        </div>
+
+        {/* YouTube API Configuration Form */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h3 className="text-lg font-semibold mb-4">🔧 YouTube API Configuration</h3>
+          <p className="text-sm text-gray-600 mb-6">
+            Configure your YouTube API credentials to enable automatic video uploads. 
+            Get your credentials from <a href="https://console.developers.google.com/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Google Cloud Console</a>.
+          </p>
+          
+          <form onSubmit={handleConfigSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                YouTube API Key <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="password"
+                value={configForm.youtube_api_key}
+                onChange={(e) => setConfigForm({...configForm, youtube_api_key: e.target.value})}
+                placeholder="Enter your YouTube Data API v3 key"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              />
+              <p className="text-xs text-gray-500 mt-1">Required for YouTube API access</p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Client ID</label>
+                <input
+                  type="text"
+                  value={configForm.youtube_client_id}
+                  onChange={(e) => setConfigForm({...configForm, youtube_client_id: e.target.value})}
+                  placeholder="OAuth 2.0 Client ID"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Client Secret</label>
+                <input
+                  type="password"
+                  value={configForm.youtube_client_secret}
+                  onChange={(e) => setConfigForm({...configForm, youtube_client_secret: e.target.value})}
+                  placeholder="OAuth 2.0 Client Secret"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Channel ID (Optional)</label>
+              <input
+                type="text"
+                value={configForm.channel_id}
+                onChange={(e) => setConfigForm({...configForm, channel_id: e.target.value})}
+                placeholder="UC1234567890abcdef (Your YouTube Channel ID)"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Default Video Privacy</label>
+              <select
+                value={configForm.default_privacy}
+                onChange={(e) => setConfigForm({...configForm, default_privacy: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="private">Private</option>
+                <option value="public">Public</option>
+                <option value="unlisted">Unlisted</option>
+              </select>
+            </div>
+            
+            <div className="flex space-x-4">
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+              >
+                {loading ? 'Saving...' : (apiConfig ? 'Update Configuration' : 'Save Configuration')}
+              </button>
+              
+              <button
+                type="button"
+                onClick={handleTestConnection}
+                disabled={loading || !configForm.youtube_api_key}
+                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+              >
+                {loading ? 'Testing...' : 'Test Connection'}
+              </button>
+            </div>
+          </form>
+        </div>
+
+        {/* API Usage Instructions */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+          <h4 className="font-medium text-blue-800 mb-3">📖 Setup Instructions:</h4>
+          <ol className="list-decimal list-inside space-y-2 text-sm text-blue-700">
+            <li>Go to <a href="https://console.developers.google.com/" target="_blank" rel="noopener noreferrer" className="underline">Google Cloud Console</a></li>
+            <li>Create a new project or select existing one</li>
+            <li>Enable "YouTube Data API v3"</li>
+            <li>Create credentials (API Key + OAuth 2.0)</li>
+            <li>Copy and paste the credentials here</li>
+            <li>Test the connection to verify setup</li>
+          </ol>
+        </div>
+      </div>
+    );
+  };
+
   useEffect(() => {
     fetchStats();
     fetchVideos();
