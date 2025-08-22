@@ -255,6 +255,93 @@ class YouTubeShortsAPITester:
         
         return success
 
+    def test_sequential_scheduling(self):
+        """Test sequential scheduling feature"""
+        sequential_data = {
+            "schedule_interval": "immediately",
+            "start_sequence": 1,
+            "count": 2
+        }
+        
+        success, response = self.run_test(
+            "Sequential Scheduling",
+            "POST",
+            "queue/sequential",
+            200,
+            data=sequential_data
+        )
+        
+        if success:
+            print(f"   Scheduled count: {response.get('scheduled_count', 'N/A')}")
+            print(f"   Start sequence: {response.get('start_sequence', 'N/A')}")
+            print(f"   Schedule interval: {response.get('schedule_interval', 'N/A')}")
+        
+        return success
+
+    def test_create_api_config(self):
+        """Test creating API configuration"""
+        config_data = {
+            "youtube_api_key": "test_api_key_12345",
+            "youtube_client_id": "test_client_id",
+            "youtube_client_secret": "test_client_secret",
+            "channel_id": "UC1234567890abcdef",
+            "default_privacy": "private"
+        }
+        
+        success, response = self.run_test(
+            "Create API Configuration",
+            "POST",
+            "config/api",
+            200,
+            data=config_data
+        )
+        
+        if success and 'id' in response:
+            self.created_config_id = response['id']
+            print(f"   Created config ID: {self.created_config_id}")
+        
+        return success
+
+    def test_get_api_config(self):
+        """Test getting active API configuration"""
+        success, response = self.run_test(
+            "Get Active API Configuration",
+            "GET",
+            "config/api",
+            200
+        )
+        
+        if success:
+            print(f"   Config ID: {response.get('id', 'N/A')}")
+            print(f"   Is Active: {response.get('is_active', 'N/A')}")
+            print(f"   Default Privacy: {response.get('default_privacy', 'N/A')}")
+        
+        return success
+
+    def test_update_api_config(self):
+        """Test updating API configuration"""
+        if not hasattr(self, 'created_config_id') or not self.created_config_id:
+            print("❌ Skipping config update test - missing config ID")
+            return False
+            
+        update_data = {
+            "youtube_api_key": "updated_api_key_67890",
+            "youtube_client_id": "updated_client_id",
+            "youtube_client_secret": "updated_client_secret",
+            "channel_id": "UC0987654321fedcba",
+            "default_privacy": "public"
+        }
+        
+        success, response = self.run_test(
+            "Update API Configuration",
+            "PUT",
+            f"config/api/{self.created_config_id}",
+            200,
+            data=update_data
+        )
+        
+        return success
+
 def main():
     print("🚀 Starting YouTube Shorts Automation Server API Tests")
     print("=" * 60)
