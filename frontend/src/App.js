@@ -333,11 +333,17 @@ function App() {
     );
   };
 
-  // Schedule Component
+  // Schedule Component  
   const ScheduleComponent = () => {
     const [selectedVideo, setSelectedVideo] = useState('');
     const [selectedMetadata, setSelectedMetadata] = useState('');
     const [scheduleInterval, setScheduleInterval] = useState('immediately');
+    const [isSequential, setIsSequential] = useState(false);
+    const [sequentialConfig, setSequentialConfig] = useState({
+      start_sequence: 1,
+      count: '',
+      schedule_interval: 'immediately'
+    });
 
     const handleSchedule = async (e) => {
       e.preventDefault();
@@ -364,66 +370,208 @@ function App() {
       setLoading(false);
     };
 
+    const handleSequentialSchedule = async (e) => {
+      e.preventDefault();
+      setLoading(true);
+
+      try {
+        const payload = {
+          schedule_interval: sequentialConfig.schedule_interval,
+          start_sequence: parseInt(sequentialConfig.start_sequence),
+        };
+        
+        if (sequentialConfig.count) {
+          payload.count = parseInt(sequentialConfig.count);
+        }
+
+        const response = await axios.post(`${API}/queue/sequential`, payload);
+        
+        setSequentialConfig({
+          start_sequence: 1,
+          count: '',
+          schedule_interval: 'immediately'
+        });
+        
+        fetchStats();
+        fetchQueue();
+        alert(`Sequential scheduling successful! ${response.data.scheduled_count} videos scheduled.`);
+      } catch (error) {
+        console.error('Error with sequential scheduling:', error);
+        alert('Failed to create sequential schedule: ' + (error.response?.data?.detail || error.message));
+      }
+      
+      setLoading(false);
+    };
+
     return (
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h3 className="text-lg font-semibold mb-4">Schedule Upload</h3>
-        <form onSubmit={handleSchedule} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Select Video</label>
-            <select
-              value={selectedVideo}
-              onChange={(e) => setSelectedVideo(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              required
+      <div className="space-y-6">
+        {/* Toggle between Manual and Sequential */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="flex items-center space-x-4 mb-4">
+            <button
+              onClick={() => setIsSequential(false)}
+              className={`px-4 py-2 rounded-lg ${
+                !isSequential 
+                  ? 'bg-blue-600 text-white' 
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
             >
-              <option value="">Choose a video...</option>
-              {videos.map((video) => (
-                <option key={video.id} value={video.id}>
-                  {video.filename}
-                </option>
-              ))}
-            </select>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Select Metadata</label>
-            <select
-              value={selectedMetadata}
-              onChange={(e) => setSelectedMetadata(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              required
+              Manual Selection
+            </button>
+            <button
+              onClick={() => setIsSequential(true)}
+              className={`px-4 py-2 rounded-lg ${
+                isSequential 
+                  ? 'bg-green-600 text-white' 
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
             >
-              <option value="">Choose metadata...</option>
-              {metadata.filter(meta => !meta.is_used).map((meta) => (
-                <option key={meta.id} value={meta.id}>
-                  {meta.title}
-                </option>
-              ))}
-            </select>
+              Sequential Auto-Schedule
+            </button>
           </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Schedule</label>
-            <select
-              value={scheduleInterval}
-              onChange={(e) => setScheduleInterval(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="immediately">Upload Immediately</option>
-              <option value="30m">Upload in 30 minutes</option>
-              <option value="1h">Upload in 1 hour</option>
-              <option value="3h">Upload in 3 hours</option>
-            </select>
+        </div>
+
+        {/* Manual Scheduling */}
+        {!isSequential && (
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h3 className="text-lg font-semibold mb-4">Manual Schedule Upload</h3>
+            <form onSubmit={handleSchedule} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Select Video</label>
+                <select
+                  value={selectedVideo}
+                  onChange={(e) => setSelectedVideo(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                >
+                  <option value="">Choose a video...</option>
+                  {videos.map((video) => (
+                    <option key={video.id} value={video.id}>
+                      #{video.sequence_number || 'N/A'} - {video.filename}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Select Metadata</label>
+                <select
+                  value={selectedMetadata}
+                  onChange={(e) => setSelectedMetadata(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                >
+                  <option value="">Choose metadata...</option>
+                  {metadata.filter(meta => !meta.is_used).map((meta) => (
+                    <option key={meta.id} value={meta.id}>
+                      #{meta.sequence_number || 'N/A'} - {meta.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Schedule</label>
+                <select
+                  value={scheduleInterval}
+                  onChange={(e) => setScheduleInterval(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="immediately">Upload Immediately</option>
+                  <option value="30m">Upload in 30 minutes</option>
+                  <option value="1h">Upload in 1 hour</option>
+                  <option value="3h">Upload in 3 hours</option>
+                </select>
+              </div>
+              
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+              >
+                {loading ? 'Scheduling...' : 'Schedule Upload'}
+              </button>
+            </form>
           </div>
-          
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
-          >
-            {loading ? 'Scheduling...' : 'Schedule Upload'}
-          </button>
-        </form>
+        )}
+
+        {/* Sequential Scheduling */}
+        {isSequential && (
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h3 className="text-lg font-semibold mb-4">🚀 Sequential Auto-Schedule</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Automatically pairs videos with metadata in serial order. Video #1 → Metadata #1, Video #2 → Metadata #2, etc.
+            </p>
+            
+            <form onSubmit={handleSequentialSchedule} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Start from Sequence #</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={sequentialConfig.start_sequence}
+                    onChange={(e) => setSequentialConfig({
+                      ...sequentialConfig, 
+                      start_sequence: e.target.value
+                    })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">How many to schedule? (Leave empty for all)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={sequentialConfig.count}
+                    onChange={(e) => setSequentialConfig({
+                      ...sequentialConfig, 
+                      count: e.target.value
+                    })}
+                    placeholder="All available"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Schedule Interval</label>
+                <select
+                  value={sequentialConfig.schedule_interval}
+                  onChange={(e) => setSequentialConfig({
+                    ...sequentialConfig, 
+                    schedule_interval: e.target.value
+                  })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                >
+                  <option value="immediately">Upload Immediately (2 min intervals)</option>
+                  <option value="30m">Every 30 minutes</option>
+                  <option value="1h">Every 1 hour</option>
+                  <option value="3h">Every 3 hours</option>
+                </select>
+              </div>
+              
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <h4 className="font-medium text-green-800 mb-2">Preview:</h4>
+                <p className="text-sm text-green-700">
+                  Will schedule from sequence #{sequentialConfig.start_sequence} with{' '}
+                  <strong>{sequentialConfig.schedule_interval === 'immediately' ? '2 minute' : sequentialConfig.schedule_interval}</strong> intervals
+                  {sequentialConfig.count && ` for ${sequentialConfig.count} videos`}
+                </p>
+              </div>
+              
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+              >
+                {loading ? 'Creating Sequential Schedule...' : '🚀 Create Sequential Schedule'}
+              </button>
+            </form>
+          </div>
+        )}
       </div>
     );
   };
