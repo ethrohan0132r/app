@@ -13,6 +13,7 @@ class YouTubeShortsAPITester:
         self.created_video_id = None
         self.created_metadata_id = None
         self.created_queue_id = None
+        self.created_config_id = None
 
     def run_test(self, name, method, endpoint, expected_status, data=None, files=None):
         """Run a single API test"""
