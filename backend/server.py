@@ -54,6 +54,7 @@ class VideoUpload(BaseModel):
     upload_date: datetime = Field(default_factory=datetime.utcnow)
     status: VideoStatus = VideoStatus.UPLOADED
     metadata_id: Optional[str] = None
+    sequence_number: Optional[int] = None
 
 class VideoMetadata(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
