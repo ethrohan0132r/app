@@ -363,7 +363,11 @@ def main():
         tester.test_get_unused_metadata,
         tester.test_create_upload_queue,
         tester.test_get_upload_queue,
-        tester.test_get_pending_uploads
+        tester.test_get_pending_uploads,
+        tester.test_sequential_scheduling,
+        tester.test_create_api_config,
+        tester.test_get_api_config,
+        tester.test_update_api_config
     ]
     
     # Run all tests
