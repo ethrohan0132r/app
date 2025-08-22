@@ -883,6 +883,7 @@ function App() {
               </div>
             </div>
           )}
+          {activeTab === 'config' && <ConfigurationComponent />}
         </div>
       </div>
     </div>
