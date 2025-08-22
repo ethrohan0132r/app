@@ -855,6 +855,7 @@ function App() {
           {activeTab === 'upload' && <VideoUpload />}
           {activeTab === 'metadata' && <MetadataForm />}
           {activeTab === 'schedule' && <ScheduleComponent />}
+          {activeTab === 'config' && <ConfigurationComponent />}
           {activeTab === 'queue' && (
             <div className="bg-white rounded-lg shadow-md p-6">
               <h3 className="text-lg font-semibold mb-4">Upload Queue</h3>
