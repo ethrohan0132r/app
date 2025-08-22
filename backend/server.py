@@ -270,6 +270,118 @@ async def get_pending_uploads():
     queue_items = await db.upload_queue.find({"status": VideoStatus.PENDING}).sort("scheduled_time", 1).to_list(1000)
     return [UploadQueue(**item) for item in queue_items]
 
+# Sequential Scheduling
+@api_router.post("/queue/sequential")
+async def create_sequential_upload_queue(schedule_data: SequentialScheduleCreate):
+    # Get videos and metadata in sequence order
+    videos = await db.videos.find().sort("sequence_number", 1).to_list(1000)
+    metadata_list = await db.metadata.find({"is_used": False}).sort("sequence_number", 1).to_list(1000)
+    
+    if not videos:
+        raise HTTPException(status_code=404, detail="No videos found")
+    if not metadata_list:
+        raise HTTPException(status_code=404, detail="No unused metadata found")
+    
+    # Determine how many to schedule
+    start_idx = schedule_data.start_sequence - 1
+    if start_idx < 0:
+        start_idx = 0
+    
+    count = schedule_data.count if schedule_data.count else min(len(videos), len(metadata_list))
+    end_idx = min(start_idx + count, len(videos), len(metadata_list))
+    
+    if start_idx >= len(videos) or start_idx >= len(metadata_list):
+        raise HTTPException(status_code=400, detail="Start sequence exceeds available items")
+    
+    created_items = []
+    
+    # Calculate time intervals
+    base_time = datetime.utcnow()
+    interval_minutes = {
+        "immediately": 0,
+        "30m": 30,
+        "1h": 60,
+        "3h": 180
+    }.get(schedule_data.schedule_interval, 0)
+    
+    for i in range(start_idx, end_idx):
+        video = videos[i]
+        metadata = metadata_list[i]
+        
+        # Calculate scheduled time with incremental delays
+        if schedule_data.schedule_interval == "immediately":
+            scheduled_time = base_time + timedelta(minutes=i * 2)  # 2 min apart for immediate
+        else:
+            scheduled_time = base_time + timedelta(minutes=interval_minutes + (i * interval_minutes))
+        
+        queue_obj = UploadQueue(
+            video_id=video["id"],
+            metadata_id=metadata["id"],
+            schedule_interval=schedule_data.schedule_interval,
+            scheduled_time=scheduled_time
+        )
+        
+        await db.upload_queue.insert_one(queue_obj.dict())
+        
+        # Mark metadata as used
+        await db.metadata.update_one(
+            {"id": metadata["id"]},
+            {"$set": {"is_used": True}}
+        )
+        
+        created_items.append(queue_obj)
+    
+    return {
+        "message": f"Created {len(created_items)} sequential upload queue items",
+        "scheduled_count": len(created_items),
+        "start_sequence": schedule_data.start_sequence,
+        "schedule_interval": schedule_data.schedule_interval
+    }
+
+# API Configuration Management
+@api_router.post("/config/api", response_model=APIConfiguration)
+async def create_api_config(config: APIConfigurationCreate):
+    # Deactivate previous configs
+    await db.api_config.update_many({}, {"$set": {"is_active": False}})
+    
+    config_obj = APIConfiguration(**config.dict())
+    await db.api_config.insert_one(config_obj.dict())
+    return config_obj
+
+@api_router.get("/config/api", response_model=APIConfiguration)
+async def get_active_api_config():
+    config = await db.api_config.find_one({"is_active": True})
+    if not config:
+        raise HTTPException(status_code=404, detail="No active API configuration found")
+    return APIConfiguration(**config)
+
+@api_router.put("/config/api/{config_id}", response_model=APIConfiguration)
+async def update_api_config(config_id: str, config: APIConfigurationCreate):
+    # Deactivate all configs first
+    await db.api_config.update_many({}, {"$set": {"is_active": False}})
+    
+    # Update the specific config
+    update_data = config.dict()
+    update_data["is_active"] = True
+    
+    result = await db.api_config.update_one(
+        {"id": config_id},
+        {"$set": update_data}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Configuration not found")
+    
+    updated_config = await db.api_config.find_one({"id": config_id})
+    return APIConfiguration(**updated_config)
+
+@api_router.delete("/config/api/{config_id}")
+async def delete_api_config(config_id: str):
+    result = await db.api_config.delete_one({"id": config_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Configuration not found")
+    return {"message": "Configuration deleted successfully"}
+
 # Include the router in the main app
 app.include_router(api_router)
 
