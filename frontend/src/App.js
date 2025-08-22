@@ -831,7 +831,8 @@ function App() {
                 { id: 'upload', label: 'Upload' },
                 { id: 'metadata', label: 'Metadata' },
                 { id: 'schedule', label: 'Schedule' },
-                { id: 'queue', label: 'Queue' }
+                { id: 'queue', label: 'Queue' },
+                { id: 'config', label: 'Configuration' }
               ].map((tab) => (
                 <button
                   key={tab.id}
